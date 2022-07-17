@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">PodcastPlay</string>
+    <string name="search_hint">Enter desired podcast</string>
+    <string name="search">Search</string>
+    <string name="subscribe">Subscribe</string>
+    <string name="ok_button">OK</string>
 </resources>

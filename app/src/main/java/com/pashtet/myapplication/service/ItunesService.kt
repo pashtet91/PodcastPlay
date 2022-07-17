@@ -1,0 +1,26 @@
+package com.pashtet.myapplication.service
+
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.GET
+import retrofit2.http.Query
+
+interface ItunesService {
+
+    @GET("/search?")
+
+    suspend fun searchPodcastByTerm(@Query("term") term:String, @Query("media") media:String = "podcast")
+                    :Response<PodcastResponce>
+
+    companion object{
+        val instance:ItunesService by lazy{
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://itunes.apple.com")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+
+            retrofit.create(ItunesService::class.java)
+        }
+    }
+}
