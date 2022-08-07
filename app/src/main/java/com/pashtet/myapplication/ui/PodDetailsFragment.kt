@@ -1,5 +1,6 @@
 package com.pashtet.myapplication.ui
 
+import android.content.Context
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.view.*
@@ -12,17 +13,30 @@ import com.pashtet.myapplication.R
 import com.pashtet.myapplication.adapter.EpisodeListAdapter
 import com.pashtet.myapplication.databinding.FragmentPodDetailsBinding
 import com.pashtet.myapplication.viewmodel.PodViewModel
+import java.lang.RuntimeException
 
 class PodDetailsFragment : Fragment() {
     private lateinit var vB: FragmentPodDetailsBinding
-    private val podViewModel: PodViewModel by activityViewModels()
     private lateinit var episodeListAdapter: EpisodeListAdapter
+    private val podViewModel: PodViewModel by activityViewModels()
+    private var listener: OnPodcastDetailsListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?){
         super.onCreate(savedInstanceState)
 
         setHasOptionsMenu(true)
 
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+
+        if(context is OnPodcastDetailsListener) {
+            listener = context
+        } else {
+            throw RuntimeException(context.toString() +
+                " must implement OnPodcastDetailsListener")
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -57,6 +71,8 @@ class PodDetailsFragment : Fragment() {
 
                 episodeListAdapter = EpisodeListAdapter(viewData.episodes)
                 vB.episodeRV.adapter = episodeListAdapter
+
+                activity?.invalidateOptionsMenu()
             }
             })
     }
@@ -64,6 +80,37 @@ class PodDetailsFragment : Fragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
         inflater.inflate(R.menu.menu_details, menu)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        podViewModel.podLiveData.observe(viewLifecycleOwner, {
+            podcast ->
+            if(podcast != null){
+                menu.findItem(R.id.menu_feed_action).title =
+                    if(podcast.subscribed)
+                        getString(R.string.unsubscribe)
+                    else
+                        getString(R.string.subscribe)
+            }
+        })
+        super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.menu_feed_action -> {
+                if(item.title == getString(R.string.unsubscribe)) {
+//                podViewModel.podLiveData.value?.feedUrl?.let{
+//                    listener?.onSubscribe()
+//                }
+//                true
+                    listener?.onUnsubscribe()
+                }else{
+                    listener?.onSubscribe()
+                }
+                true
+            }else-> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun updateControls(){
@@ -79,5 +126,10 @@ class PodDetailsFragment : Fragment() {
         fun newInstance(): PodDetailsFragment{
             return PodDetailsFragment()
         }
+    }
+
+    interface OnPodcastDetailsListener{
+        fun onSubscribe()
+        fun onUnsubscribe()
     }
 }

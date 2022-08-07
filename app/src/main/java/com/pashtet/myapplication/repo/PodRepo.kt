@@ -1,16 +1,27 @@
 package com.pashtet.myapplication.repo
 
+import androidx.lifecycle.LiveData
+import com.pashtet.myapplication.db.PodDao
 import com.pashtet.myapplication.model.Episode
 import com.pashtet.myapplication.model.Podcast
-import com.pashtet.myapplication.service.FeedService
 import com.pashtet.myapplication.service.RssFeedResponse
 import com.pashtet.myapplication.service.RssFeedService
 import com.pashtet.myapplication.util.DateUtils
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
-class PodRepo(private var rssFeedService: RssFeedService) {
+class PodRepo(private var rssFeedService: RssFeedService,
+              private var podDao:PodDao) {
     //val rssFeedService = RssFeedService.instance
      suspend fun getPodcast(feedUrl: String): Podcast? {
         var podcast: Podcast? = null
+        val podcastLocal = podDao.loadPodcast(feedUrl)
+        if(podcastLocal != null){
+            podcastLocal.id?.let{
+                podcastLocal.episodes = podDao.loadEpisodes(it)
+                return podcastLocal
+            }
+        }
 
          val feedResponse = rssFeedService.getFeed(feedUrl)
          if(feedResponse != null)
@@ -30,6 +41,7 @@ class PodRepo(private var rssFeedService: RssFeedService) {
         return episodeResponse.map{
             Episode(
                 it.guid ?: "",
+                null,
                 it.title ?: "",
                 it.description ?: "",
                 it.url ?: "",
@@ -45,7 +57,27 @@ class PodRepo(private var rssFeedService: RssFeedService) {
         val description = if(rssResponce.description == "")
             rssResponce.summary else rssResponce.description
 
-        return Podcast(feedUrl, rssResponce.title, description,
+        return Podcast(null, feedUrl, rssResponce.title, description,
             imageUrl, rssResponce.lastUpdated, episodes = rssItemsToEpisodes(items))
+    }
+
+    fun save(podcast: Podcast){
+        GlobalScope.launch {
+            val podcastId = podDao.insertPodcast(podcast)
+            for (episode in podcast.episodes){
+                episode.podcastId = podcastId
+                podDao.insertEpisode(episode)
+            }
+        }
+    }
+
+    fun delete(podcast: Podcast){
+        GlobalScope.launch {
+            podDao.deletePodcast(podcast)
+        }
+    }
+
+    fun getAll(): LiveData<List<Podcast>>{
+        return podDao.loadPodcasts()
     }
 }
