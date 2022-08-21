@@ -82,6 +82,18 @@ class PodViewModel(application: Application) :
         return livePodcastSummaryData
     }
 
+    suspend fun setActivePodcast(feedUrl: String): MainViewModel.PodSummaryViewData?{
+        val repo = podcastRepo ?: return null
+        val podcast = repo.getPodcast(feedUrl)
+        if(podcast == null)
+            return null
+        else{
+            _podLiveData.value = podcastToPodcastView(podcast)
+            activePodcast = podcast
+            return podcastToSummaryView(podcast)
+        }
+    }
+
     fun saveActivePodcast(){
         val repo = podcastRepo ?: return
         activePodcast?.let{

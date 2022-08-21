@@ -31,6 +31,21 @@ class PodRepo(private var rssFeedService: RssFeedService,
         //return Podcast(feedUrl, "No Name","No description", "No image")
     }
 
+    private suspend fun getNewEpisodes(localPodcast: Podcast) : List<Episode>{
+        val responce = rssFeedService.getFeed(localPodcast.feedUrl)
+        if(responce != null){
+            val remotePodcast = rssResponseToPodcast(localPodcast.feedUrl,localPodcast.imageUrl,responce)
+            remotePodcast?.let{
+                val localEpisodes = podDao.loadEpisodes(localPodcast.id!!)
+
+                return remotePodcast.episodes.filter { episode ->
+                    localEpisodes.find { episode.guid == it.guid } == null
+                }
+            }
+        }
+        return listOf()
+    }
+
     suspend fun getRss(feedUrl: String){
 
         rssFeedService.getFeed(feedUrl)
@@ -71,6 +86,34 @@ class PodRepo(private var rssFeedService: RssFeedService,
         }
     }
 
+    private fun saveNewEpisodes(podcastId: Long, episodes: List<Episode>){
+        GlobalScope.launch {
+            for(episode in episodes){
+                episode.podcastId = podcastId
+                podDao.insertEpisode(episode)
+            }
+        }
+    }
+
+    suspend fun updatePodcastEpisodes():MutableList<PodcastUpdateInfo>{
+        val updatedPodcasts: MutableList<PodcastUpdateInfo> = mutableListOf()
+        val podcasts = podDao.loadPodcastsStatic()
+        for(podcast in podcasts){
+            val newEpisodes = getNewEpisodes(podcast)
+            if(newEpisodes.count() > 0){
+                podcast.id?.let{
+                    saveNewEpisodes(it, newEpisodes)
+                    updatedPodcasts.add(
+                        PodcastUpdateInfo(podcast.feedUrl,
+                                                          podcast.feedTitle,
+                                                          newEpisodes.count())
+                    )
+                }
+            }
+        }
+        return updatedPodcasts
+    }
+
     fun delete(podcast: Podcast){
         GlobalScope.launch {
             podDao.deletePodcast(podcast)
@@ -80,4 +123,10 @@ class PodRepo(private var rssFeedService: RssFeedService,
     fun getAll(): LiveData<List<Podcast>>{
         return podDao.loadPodcasts()
     }
+
+    class PodcastUpdateInfo(
+        val feedUrl: String,
+        val name: String,
+        val newCount: Int
+    )
 }

@@ -16,6 +16,9 @@ interface PodDao {
     @Query("SELECT * FROM Podcast ORDER BY FeedTitle")
     fun loadPodcasts(): LiveData<List<Podcast>>
 
+    @Query("SELECT * FROM Podcast ORDER BY FeedTitle")
+    fun loadPodcastsStatic(): List<Podcast>
+
     @Query("SELECT * FROM Podcast WHERE feedUrl = :url")
     suspend fun loadPodcast(url:String): Podcast?
 
