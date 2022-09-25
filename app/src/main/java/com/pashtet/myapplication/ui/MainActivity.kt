@@ -257,9 +257,38 @@ class MainActivity : AppCompatActivity(), PodListAdapter.PodListAdapterListener,
         )
     }
 
+    private fun createEpisodePlayerFragment(): EpisodePlayerFragment{
+        var episodePlayerFragment = supportFragmentManager.findFragmentByTag(TAG_PLAYER_FRAGMENT) as
+                EpisodePlayerFragment?
+        if(episodePlayerFragment == null) {
+            episodePlayerFragment = EpisodePlayerFragment.newInstance()
+        }
+
+        return episodePlayerFragment
+    }
+
+    private fun showPlayerFragment() {
+        val episodePlayerFragment = createEpisodePlayerFragment()
+
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.podDetailsContainer, episodePlayerFragment, TAG_PLAYER_FRAGMENT)
+            .addToBackStack("PlayerFragment")
+            .commit()
+
+        binding.podcastRecyclerView.visibility = View.INVISIBLE
+        searchMenuItem.isVisible= false
+    }
+
+    override fun onShowEpisodePlayer(episodeViewData: PodViewModel.EpisodeViewData) {
+        podViewModel.activeEpisodeViewData = episodeViewData
+        showPlayerFragment()
+    }
+
     companion object{
         private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
         private const val TAG_EPISODE_UPDATE_JOB =
             "com.pashtet.podcastplay.episodes"
+        private const val TAG_PLAYER_FRAGMENT = "PlayerFragment"
     }
 }

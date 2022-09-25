@@ -28,6 +28,7 @@ class PodViewModel(application: Application) :
     private var activePodcast: Podcast? = null
     private val _podLiveData = MutableLiveData<PodViewData?>()
     val podLiveData: LiveData<PodViewData?> = _podLiveData
+    var activeEpisodeViewData: EpisodeViewData? = null
 
     data class PodViewData(
         var subscribed: Boolean = false,

@@ -149,17 +149,18 @@ class PodDetailsFragment : Fragment(), EpisodeListAdapter.EpisodeListAdapterList
     }
 
     override fun onSelectedEpisode(episodeViewData: PodViewModel.EpisodeViewData) {
-        val fragmentActivity = activity as FragmentActivity
-        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
-        if(controller.playbackState != null){
-            if(controller.playbackState.state == PlaybackStateCompat.STATE_PLAYING) {
-                controller.transportControls.pause()
-            } else {
-                startPlaying(episodeViewData)
-            }
-        } else {
-            startPlaying(episodeViewData)
-        }
+//        val fragmentActivity = activity as FragmentActivity
+//        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+//        if(controller.playbackState != null){
+//            if(controller.playbackState.state == PlaybackStateCompat.STATE_PLAYING) {
+//                controller.transportControls.pause()
+//            } else {
+//                startPlaying(episodeViewData)
+//            }
+//        } else {
+//            startPlaying(episodeViewData)
+//        }
+        listener?.onShowEpisodePlayer(episodeViewData)
     }
 
     private fun updateControls(){
@@ -205,6 +206,7 @@ class PodDetailsFragment : Fragment(), EpisodeListAdapter.EpisodeListAdapterList
     interface OnPodcastDetailsListener{
         fun onSubscribe()
         fun onUnsubscribe()
+        fun onShowEpisodePlayer(episodeViewData: PodViewModel.EpisodeViewData)
     }
 
     inner class MediaControllerCallback: MediaControllerCompat.Callback(){
