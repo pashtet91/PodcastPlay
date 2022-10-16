@@ -5,6 +5,7 @@ import android.media.*
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.ResultReceiver
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -62,10 +63,59 @@ class PodcastPlayMediaCallback(val context: Context,
         pausePlaying()
     }
 
-    private fun setState(state: Int){
+    override fun onCommand(command: String?, extras: Bundle?, cb: ResultReceiver?) {
+        super.onCommand(command, extras, cb)
+        when(command) {
+            CMD_CHANGESPEED -> extras?.let{changeSpeed(it)}
+        }
+    }
+
+    override fun onSeekTo(pos: Long) {
+        super.onSeekTo(pos)
+        mediaPlayer?. seekTo(pos.toInt())
+
+        val playbackState: PlaybackStateCompat? = mediaSession.controller.playbackState
+
+        if(playbackState != null) {
+            setState(playbackState.state)
+        } else {
+            setState(PlaybackStateCompat.STATE_PAUSED)
+        }
+    }
+
+    private fun setState(state: Int, newSpeed: Float? = null){
         var position: Long = -1
         mediaPlayer?.let{
             position = it.currentPosition.toLong()
+        }
+
+        var speed = 1.0f;
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if(newSpeed == null) {
+                speed = mediaPlayer?.getPlaybackParams()?.speed ?: 1.0f
+            } else {
+                speed = newSpeed
+            }
+
+            mediaPlayer?.let{mediaPlayer ->
+                try{
+                    mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(speed)
+                }
+                catch (e:Exception) {
+                    mediaPlayer.reset()
+                    mediaUri?.let{ mediaUri ->
+                        mediaPlayer.setDataSource(context,mediaUri)
+                    }
+                    mediaPlayer.prepare()
+                    mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(speed)
+                    mediaPlayer.seekTo(position.toInt())
+
+                    if(state == PlaybackStateCompat.STATE_PLAYING){
+                        mediaPlayer.start()
+                    }
+                }
+            }
         }
         val playbackState = PlaybackStateCompat.Builder()
             .setActions(
@@ -74,7 +124,7 @@ class PodcastPlayMediaCallback(val context: Context,
                 PlaybackStateCompat.ACTION_PLAY_PAUSE or
                 PlaybackStateCompat.ACTION_PAUSE
             )
-            .setState(state, position, 1.0f)
+            .setState(state, position, speed)
             .build()
 
         mediaSession.setPlaybackState(playbackState)
@@ -143,6 +193,10 @@ class PodcastPlayMediaCallback(val context: Context,
                             MediaMetadataCompat.METADATA_KEY_MEDIA_URI,
                             mediaUri.toString()
                         )
+                        .putLong(
+                            MediaMetadataCompat.METADATA_KEY_DURATION,
+                            mediaPlayer.duration.toLong()
+                        )
                         .build()
                     )
                 }
@@ -157,6 +211,14 @@ class PodcastPlayMediaCallback(val context: Context,
                 setState(PlaybackStateCompat.STATE_PLAYING)
             }
         }
+    }
+
+    private fun changeSpeed(extras: Bundle) {
+        var playbackState = PlaybackStateCompat.STATE_PAUSED
+        if(mediaSession.controller.playbackState != null) {
+            playbackState = mediaSession.controller.playbackState.state
+        }
+        setState(playbackState, extras.getFloat(CMD_EXTRA_SPEED))
     }
 
     private fun pausePlaying() {
@@ -178,5 +240,11 @@ class PodcastPlayMediaCallback(val context: Context,
                 setState(PlaybackStateCompat.STATE_STOPPED)
             }
         }
+    }
+
+
+    companion object {
+        const val CMD_CHANGESPEED = "change_speed"
+        const val CMD_EXTRA_SPEED = "speed"
     }
 }
