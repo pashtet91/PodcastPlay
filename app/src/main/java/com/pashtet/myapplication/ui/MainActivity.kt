@@ -65,6 +65,7 @@ class MainActivity : AppCompatActivity(), PodListAdapter.PodListAdapterListener,
         inflater.inflate(R.menu.menu_search, menu)
 
         searchMenuItem = menu.findItem(R.id.search_item)
+        val searchView = searchMenuItem.actionView as SearchView
         searchMenuItem.setOnActionExpandListener(object:MenuItem.OnActionExpandListener{
             override fun onMenuItemActionExpand(p0: MenuItem?): Boolean {
                 return true
@@ -75,7 +76,6 @@ class MainActivity : AppCompatActivity(), PodListAdapter.PodListAdapterListener,
                 return true
             }
         })
-        val searchView = searchMenuItem.actionView as SearchView
 
         val searchManager = getSystemService(Context.SEARCH_SERVICE)
             as SearchManager
@@ -218,8 +218,8 @@ class MainActivity : AppCompatActivity(), PodListAdapter.PodListAdapterListener,
         supportFragmentManager.beginTransaction().add(R.id.podDetailsContainer,
         podDetailsFragment, TAG_DETAILS_FRAGMENT)
             .addToBackStack("DetailsFragment").commit()
-        binding.podcastRecyclerView.visibility = View.INVISIBLE
-        searchMenuItem.isVisible = false
+        if(binding.podcastRecyclerView.visibility == View.INVISIBLE)
+            searchMenuItem.isVisible = false
     }
 
     private fun addBackStackListener(){

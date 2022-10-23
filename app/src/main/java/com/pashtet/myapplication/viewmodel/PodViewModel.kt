@@ -6,7 +6,6 @@ import com.pashtet.myapplication.db.PodDao
 import com.pashtet.myapplication.db.PodPlayDatabase
 import com.pashtet.myapplication.model.Episode
 import com.pashtet.myapplication.model.Podcast
-import com.pashtet.myapplication.repo.ItunesRepo
 import com.pashtet.myapplication.repo.PodRepo
 import com.pashtet.myapplication.service.ItunesService
 import com.pashtet.myapplication.service.RssFeedService
@@ -45,7 +44,8 @@ class PodViewModel(application: Application) :
         var description: String? = "",
         var mediaUrl: String? = "",
         var releaseDate: Date? = null,
-        var duration: String? = ""
+        var duration: String? = "",
+        var isVideo: Boolean = false
     )
 
     suspend fun getPodcast(podcastSummaryViewData:
@@ -119,13 +119,15 @@ class PodViewModel(application: Application) :
     private fun episodesToEpisodesView(episodes: List<Episode>):
             List<EpisodeViewData> {
         return episodes.map {
+            val isVideo = it.mimeType.startsWith("video")
             EpisodeViewData(
                 it.guid,
                 it.title,
                 it.description,
                 it.mediaUrl,
                 it.releaseDate,
-                it.duration
+                it.duration,
+                isVideo
             )
         }
     }

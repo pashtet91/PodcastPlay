@@ -19,6 +19,7 @@ class PodcastPlayMediaCallback(val context: Context,
     private var newMedia: Boolean = false
     private var mediaExtras: Bundle? = null
     private var focusRequest: AudioFocusRequest? = null
+    private var mediaNeedsPrepare: Boolean = false
 
     override fun onPlayFromUri(uri: Uri?, extras: Bundle?) {
         super.onPlayFromUri(uri, extras)
@@ -177,6 +178,7 @@ class PodcastPlayMediaCallback(val context: Context,
             mediaPlayer?.setOnCompletionListener({
                 setState(PlaybackStateCompat.STATE_PAUSED)
             })
+            mediaNeedsPrepare = true
         }
     }
 
@@ -185,9 +187,11 @@ class PodcastPlayMediaCallback(val context: Context,
             newMedia = false
             mediaPlayer?.let{mediaPlayer ->
                 mediaUri?.let{ mediaUri ->
-                    mediaPlayer.reset()
-                    mediaPlayer.setDataSource(context, mediaUri)
-                    mediaPlayer.prepare()
+                    if(mediaNeedsPrepare) {
+                        mediaPlayer.reset()
+                        mediaPlayer.setDataSource(context, mediaUri)
+                        mediaPlayer.prepare()
+                    }
                     mediaSession.setMetadata(
                         MediaMetadataCompat.Builder().putString(
                             MediaMetadataCompat.METADATA_KEY_MEDIA_URI,
